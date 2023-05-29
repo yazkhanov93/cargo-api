@@ -18,8 +18,8 @@ class Location(models.Model):
 
 class Truck(models.Model):
     number = models.CharField(max_length=10, unique=True, primary_key=True)
-    currenct_lat = models.FloatField()
-    currenct_lng = models.FloatField()
+    current_lat = models.FloatField()
+    current_lng = models.FloatField()
     load_capacity = models.FloatField()
 
     class Meta:
