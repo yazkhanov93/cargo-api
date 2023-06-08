@@ -19,14 +19,19 @@ class CargoViews(APIView):
         serializer = CargoDetailSerializer(result, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @swagger_auto_schema(request_body=CargoSerializer(many=False))
+    @swagger_auto_schema(request_body=CargoAddSerializer(many=False))
     def post(self, request):
-        serializer = CargoSerializer(data=request.data)
+        location = Location.objects.all().only("id", "zip_code", "lat", "lng")
+        pick_up = location.filter(zip_code=request.data["zip_code_from"])
+        delivery = location.filter(zip_code=request.data["zip_code_to"])
+        data = {"location_pick_up":pick_up[0].id, "location_delivery":delivery[0].id, "weight":request.data["weight"], "description":request.data["description"]}
+        serializer = CargoSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
+
 
 
 class CargoDetailView(APIView):
@@ -35,14 +40,29 @@ class CargoDetailView(APIView):
         cargo = Cargo.objects.get(id=pk)
         truck = Truck.objects.all()
         truck_dist = []
-        for i in truck:
-            cargo_coordinate = (cargo.location_pick_up.lat, cargo.location_delivery.lng)
-            truck_coordinate = (i.currenct_lat, i.currenct_lng)
-            distance = (geodesic(cargo_coordinate, truck_coordinate).miles)
-            truck_dist.append({"truck":i.number, "distance":distance, "value":"miles"})
-        truck_dist = sorted(truck_dist, key=lambda k :k["distance"])
+        try:
+            for i in truck:
+                cargo_coordinate = (cargo.location_pick_up.lat, cargo.location_delivery.lng)
+                truck_coordinate = (i.current_lat, i.current_lng)
+                distance = (geodesic(cargo_coordinate, truck_coordinate).miles)
+                truck_dist.append({"truck":i.number, "distance":distance, "value":"miles"})
+            truck_dist = sorted(truck_dist, key=lambda k :k["distance"])
+        except:
+            pass
         serializer = CargoDetailSerializer(cargo, many=False)
         return Response({"Cargo":serializer.data, "trucks":truck_dist})
+
+
+class EditCargo(APIView):
+    @swagger_auto_schema(request_body=CargoDetailSerializer(many=False))
+    def put(self, request, pk, format=None):
+        cargo = Cargo.objects.get(id=pk)
+        serializer = CargoDetailSerializer(cargo, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            print(serializer.errors)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
 
 

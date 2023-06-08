@@ -5,7 +5,7 @@ from django.db import models
 class Location(models.Model):
     city = models.CharField(max_length=255)
     state = models.CharField(max_length=255)
-    post_code_zip = models.CharField(max_length=100, unique=True)
+    zip_code = models.CharField(max_length=100, unique=True)
     lat = models.FloatField(unique=True)
     lng = models.FloatField(unique=True)
 
